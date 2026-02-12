@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Para mi persona favorita ❤️</title>
+    <title>Corazones ❤️</title>
 
     <style>
         html, body {
@@ -25,7 +25,7 @@
             object-fit: cover; z-index: -1;
         }
 
-        /* MODAL RESPONSIVO Y ADAPTABLE */
+        /* MODAL ADAPTABLE A 6.4 PULGADAS */
         #modal {
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.95);
@@ -38,14 +38,14 @@
         #modal-content { 
             text-align: center; 
             width: 100%;
-            max-width: 450px; 
+            max-width: 400px; 
             cursor: default; 
         }
 
         #modal img, #modal video {
             width: auto;
-            max-width: 100%; 
-            max-height: 50vh; /* Ajuste para que siempre quepa el texto y el botón abajo */
+            max-width: 90%; 
+            max-height: 45vh; /* Altura reducida para asegurar espacio de texto */
             border-radius: 20px;
             box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
             border: 3px solid white;
@@ -53,21 +53,20 @@
 
         #mensaje-bonito {
             color: white; 
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             margin-top: 15px; 
             font-weight: 600;
-            padding: 0 10px;
+            padding: 0 20px;
             line-height: 1.4;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
         }
 
         #close-btn {
             margin-top: 20px; color: white;
-            font-size: 16px; cursor: pointer;
+            font-size: 15px; cursor: pointer;
             background: #ff4081;
-            padding: 12px 40px; border-radius: 30px;
+            padding: 10px 35px; border-radius: 30px;
             font-weight: bold; border: none;
-            box-shadow: 0 4px 15px rgba(255, 64, 129, 0.4);
         }
     </style>
 </head>
@@ -96,15 +95,20 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 
 <script>
-// ================= ESCENA Y CÁMARA =================
+// ================= CONFIGURACIÓN ESCENA =================
 const scene = new THREE.Scene();
 const videoF = document.getElementById('video-fondo');
 const texturaFondo = new THREE.VideoTexture(videoF);
 scene.background = texturaFondo;
 
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-// Ajuste de distancia inicial según el dispositivo
-camera.position.z = window.innerWidth < 500 ? 80 : 60; 
+// AJUSTE PARA 6.4 PULGADAS: Cámara más alejada y FOV controlado
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+function ajustarCamara() {
+    const ratio = window.innerWidth / window.innerHeight;
+    // Si es vertical (móvil), alejamos más la cámara para que el margen de 6.4" sea seguro
+    camera.position.z = ratio < 1 ? 95 : 70; 
+}
+ajustarCamara();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -118,26 +122,18 @@ scene.add(light);
 
 // ================= PALABRAS BONITAS =================
 const palabrasBonitas = [
-    "Eres mi pensamiento favorito ❤️", 
-    "Gracias por existir ✨", 
-    "Mi lugar favorito es a tu lado 🌹", 
-    "Eres la casualidad más linda 💖",
-    "Contigo todo es mejor 🌟", 
-    "Te amo más de lo que imaginas 🧸", 
-    "Eres mi alegría de cada día 🌈", 
-    "Amo cada detalle de ti 💍",
-    "Eres mi persona favorita en el mundo 🌎", 
-    "Cada momento contigo es un tesoro 💎", 
-    "Tú y yo, siempre ❤️", 
-    "Eres mi sueño hecho realidad 🌙",
-    "A tu lado soy muy feliz 😊", 
-    "Gracias por tu amor infinito ♾️", 
-    "Eres mi pedacito de cielo ☁️", 
-    "Estar contigo es lo mejor 🥂",
-    "¡Eres el amor de mi vida! Mira este video para ti ❤️" // Para el centro
+    "Eres mi pensamiento favorito ❤️", "Gracias por existir ✨", 
+    "Mi lugar favorito es a tu lado 🌹", "Eres la casualidad más linda 💖",
+    "Contigo todo es mejor 🌟", "Te amo más de lo que imaginas 🧸", 
+    "Eres mi alegría de cada día 🌈", "Amo cada detalle de ti 💍",
+    "Eres mi persona favorita 🌎", "Cada momento es un tesoro 💎", 
+    "Tú y yo, siempre ❤️", "Eres mi sueño hecho realidad 🌙",
+    "A tu lado soy muy feliz 😊", "Gracias por tu amor infinito ♾️", 
+    "Eres mi pedacito de cielo ☁️", "Estar contigo es lo mejor 🥂",
+    "¡Mira este video que hice para ti! ❤️" // Texto para el centro
 ];
 
-// ================= CREACIÓN DE CORAZONES =================
+// ================= CREACIÓN DE CORAZONES (MÁS PEQUEÑOS) =================
 function crearCorazon(color, idIndex, esVideo = false) {
     const shape = new THREE.Shape();
     shape.moveTo(0, 0);
@@ -148,22 +144,19 @@ function crearCorazon(color, idIndex, esVideo = false) {
     shape.bezierCurveTo(-10, -2, -10, 4, -5, 4);
     shape.bezierCurveTo(-3, 4, 0, 2, 0, 0);
 
-    const extrudeSettings = { depth: 2.5, bevelEnabled: true, bevelSize: 1, bevelThickness: 1, bevelSegments: 8 };
+    const extrudeSettings = { depth: 2, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 8 };
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     
     const material = new THREE.MeshPhysicalMaterial({
-        color: color,
-        metalness: 0,
-        roughness: 0.2,
-        emissive: color,
-        emissiveIntensity: 0.15
+        color: color, metalness: 0, roughness: 0.2, emissive: color, emissiveIntensity: 0.15
     });
 
     const mesh = new THREE.Mesh(geometry, material);
     const group = new THREE.Group();
     group.add(mesh);
     
-    const scale = esVideo ? 0.42 : 0.25; 
+    // REDUCCIÓN DE ESCALA PARA QUE ENTREN EN MARGEN SEGURO
+    const scale = esVideo ? 0.38 : 0.22; 
     group.scale.set(scale, scale, scale);
     group.userData = { id: idIndex, esVideo: esVideo };
     
@@ -174,8 +167,8 @@ function crearCorazon(color, idIndex, esVideo = false) {
 function heartParam(t) {
     const x = 16 * Math.pow(Math.sin(t), 3);
     const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-    // Factor de separación responsivo
-    const factor = window.innerWidth < 500 ? 2.1 : 2.3; 
+    // Factor reducido para que la silueta sea más compacta y no se salga de los bordes
+    const factor = 2.0; 
     return { x: x * factor, y: y * factor }; 
 }
 
@@ -216,7 +209,7 @@ uniformPoints.forEach((pos, i) => {
     corazones.push(corazon);
 });
 
-// ================= INTERACCIÓN ADAPTABLE =================
+// ================= INTERACCIÓN =================
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -258,9 +251,7 @@ function handleInput(clientX, clientY) {
 }
 
 window.addEventListener("click", (e) => handleInput(e.clientX, e.clientY));
-window.addEventListener("touchstart", (e) => {
-    handleInput(e.touches[0].clientX, e.touches[0].clientY);
-});
+window.addEventListener("touchstart", (e) => handleInput(e.touches[0].clientX, e.touches[0].clientY));
 
 function cerrarModal() {
     document.getElementById("modal").style.display = "none";
@@ -272,9 +263,9 @@ function animate() {
     requestAnimationFrame(animate);
     const now = Date.now() * 0.001;
     corazones.forEach((c, i) => {
-        c.rotation.y = Math.sin(now + i) * 0.25;
+        c.rotation.y = Math.sin(now + i) * 0.2;
         const pulse = 1 + Math.sin(now * 3 + i) * 0.04;
-        const baseScale = c.userData.esVideo ? 0.42 : 0.25;
+        const baseScale = c.userData.esVideo ? 0.38 : 0.22;
         c.scale.set(baseScale * pulse, baseScale * pulse, baseScale * pulse);
     });
     renderer.render(scene, camera);
@@ -283,7 +274,7 @@ animate();
 
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
-    camera.position.z = window.innerWidth < 500 ? 80 : 60; 
+    ajustarCamara();
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
