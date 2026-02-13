@@ -1,5 +1,3 @@
-Aquí tienes el código completo con las mejoras de fluidez y cierre automático a los 3 segundos. He añadido precarga de imágenes y video, y un sistema de timeout para que el modal se cierre solo sin bloquear la interacción con otros corazones.
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,6 +23,8 @@ Aquí tienes el código completo con las mejoras de fluidez y cierre automático
             position: fixed; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover; z-index: -1;
+            /* MEJORA: Fondo inmediato mientras carga el video */
+            background: #000; 
         }
 
         /* MODAL ADAPTABLE A 6.4 PULGADAS */
@@ -42,15 +42,18 @@ Aquí tienes el código completo con las mejoras de fluidez y cierre automático
             width: 100%;
             max-width: 400px; 
             cursor: default; 
+            /* MEJORA: Permite que el click al "aire" del modal lo cierre */
+            pointer-events: none;
         }
 
         #modal img, #modal video {
             width: auto;
             max-width: 90%; 
-            max-height: 45vh; /* Altura reducida para asegurar espacio de texto */
+            max-height: 45vh;
             border-radius: 20px;
             box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
             border: 3px solid white;
+            pointer-events: auto; /* Reactiva interacción para el contenido */
         }
 
         #mensaje-bonito {
@@ -69,6 +72,7 @@ Aquí tienes el código completo con las mejoras de fluidez y cierre automático
             background: #ff4081;
             padding: 10px 35px; border-radius: 30px;
             font-weight: bold; border: none;
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -76,14 +80,13 @@ Aquí tienes el código completo con las mejoras de fluidez y cierre automático
 
 <audio id="musica" src="musica.mp3" loop preload="auto"></audio>
 
-<video id="video-fondo" autoplay muted loop playsinline>
+<video id="video-fondo" autoplay muted loop playsinline preload="auto">
     <source src="atardecer.mp4" type="video/mp4">
 </video>
 
 <div id="modal" onclick="cerrarModal()">
     <div id="modal-content" onclick="event.stopPropagation()">
         <div id="media-container">
-            <!-- El video se precarga con preload="auto" -->
             <video id="videoFlor" controls playsinline style="display:none; width: 100%; border-radius: 15px;" preload="auto">
                 <source src="videoFlor.mp4" type="video/mp4">
             </video>
@@ -99,12 +102,10 @@ Aquí tienes el código completo con las mejoras de fluidez y cierre automático
 
 <script>
 // ================= PRECARGA DE RECURSOS =================
-// Precargar las 16 imágenes (imagen1.jpeg ... imagen16.jpeg)
 for (let i = 1; i <= 16; i++) {
     const img = new Image();
     img.src = `imagen${i}.jpeg`;
 }
-// El video ya tiene preload="auto" en la etiqueta
 
 // ================= CONFIGURACIÓN ESCENA =================
 const scene = new THREE.Scene();
@@ -112,16 +113,15 @@ const videoF = document.getElementById('video-fondo');
 const texturaFondo = new THREE.VideoTexture(videoF);
 scene.background = texturaFondo;
 
-// AJUSTE PARA 6.4 PULGADAS: Cámara más alejada y FOV controlado
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
 function ajustarCamara() {
     const ratio = window.innerWidth / window.innerHeight;
-    // Si es vertical (móvil), alejamos más la cámara para que el margen de 6.4" sea seguro
     camera.position.z = ratio < 1 ? 95 : 70; 
 }
 ajustarCamara();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+// MEJORA: powerPreference para que cargue más rápido en móviles
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.getElementById('canvas-container').appendChild(renderer.domElement);
@@ -141,10 +141,10 @@ const palabrasBonitas = [
     "Tú y yo, siempre ❤️", "Eres mi sueño hecho realidad 🌙",
     "A tu lado soy muy feliz 😊", "Gracias por tu amor infinito ♾️", 
     "Eres mi pedacito de cielo ☁️", "Estar contigo es lo mejor 🥂",
-    "¡Mira este video que hice para ti! ❤️" // Texto para el centro
+    "¡Mira este video que hice para ti! ❤️"
 ];
 
-// ================= CREACIÓN DE CORAZONES (MÁS PEQUEÑOS) =================
+// ================= CREACIÓN DE CORAZONES =================
 function crearCorazon(color, idIndex, esVideo = false) {
     const shape = new THREE.Shape();
     shape.moveTo(0, 0);
@@ -157,7 +157,6 @@ function crearCorazon(color, idIndex, esVideo = false) {
 
     const extrudeSettings = { depth: 2, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 8 };
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    
     const material = new THREE.MeshPhysicalMaterial({
         color: color, metalness: 0, roughness: 0.2, emissive: color, emissiveIntensity: 0.15
     });
@@ -166,7 +165,6 @@ function crearCorazon(color, idIndex, esVideo = false) {
     const group = new THREE.Group();
     group.add(mesh);
     
-    // REDUCCIÓN DE ESCALA PARA QUE ENTREN EN MARGEN SEGURO
     const scale = esVideo ? 0.38 : 0.22; 
     group.scale.set(scale, scale, scale);
     group.userData = { id: idIndex, esVideo: esVideo };
@@ -174,11 +172,10 @@ function crearCorazon(color, idIndex, esVideo = false) {
     return group;
 }
 
-// ================= DISTRIBUCIÓN UNIFORME =================
+// ================= DISTRIBUCIÓN =================
 function heartParam(t) {
     const x = 16 * Math.pow(Math.sin(t), 3);
     const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-    // Factor reducido para que la silueta sea más compacta y no se salga de los bordes
     const factor = 2.0; 
     return { x: x * factor, y: y * factor }; 
 }
@@ -220,11 +217,9 @@ uniformPoints.forEach((pos, i) => {
     corazones.push(corazon);
 });
 
-// ================= INTERACCIÓN Y MODAL CON CIERRE AUTOMÁTICO =================
+// ================= INTERACCIÓN =================
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-
-// Variable para controlar el timeout de cierre automático
 let autoCloseTimeout = null;
 
 function openModal(data) {
@@ -233,41 +228,34 @@ function openModal(data) {
     const container = document.getElementById("media-container");
     const txt = document.getElementById("mensaje-bonito");
 
-    // Limpiar cualquier timeout anterior para evitar conflictos
     if (autoCloseTimeout) {
         clearTimeout(autoCloseTimeout);
         autoCloseTimeout = null;
     }
 
-    // Eliminar imagen previa si existe
     const oldImg = document.getElementById("img-dinamica");
     if (oldImg) oldImg.remove();
 
-    // Mostrar el mensaje correspondiente
     txt.innerText = palabrasBonitas[data.id];
 
     if (data.esVideo) {
-        // Mostrar video y ocultar imagen
         video.style.display = "block";
-        video.currentTime = 0; // Reiniciar por si estaba a medias
-        video.play().catch(() => {}); // El catch por si hay interacción necesaria
+        video.currentTime = 0;
+        video.play().catch(() => {});
     } else {
-        // Mostrar imagen
         video.style.display = "none";
         const img = document.createElement("img");
         img.id = "img-dinamica";
-        img.src = `imagen${data.id + 1}.jpeg`; // +1 porque las imágenes van de 1 a 16
+        img.src = `imagen${data.id + 1}.jpeg`;
         img.alt = "Imagen bonita";
         container.appendChild(img);
     }
 
     modal.style.display = "flex";
     
-    // Intentar reproducir la música de fondo (solo si no está ya sonando)
     const musica = document.getElementById("musica");
     musica.play().catch(() => {});
 
-    // Programar cierre automático a los 3 segundos
     autoCloseTimeout = setTimeout(() => {
         cerrarModal();
     }, 3000);
@@ -276,14 +264,8 @@ function openModal(data) {
 function cerrarModal() {
     const modal = document.getElementById("modal");
     const video = document.getElementById("videoFlor");
-    
-    // Ocultar modal
     modal.style.display = "none";
-    
-    // Pausar video si está visible
     video.pause();
-    
-    // Cancelar el timeout pendiente (si lo hay)
     if (autoCloseTimeout) {
         clearTimeout(autoCloseTimeout);
         autoCloseTimeout = null;
@@ -291,6 +273,12 @@ function cerrarModal() {
 }
 
 function handleInput(clientX, clientY) {
+    // NUEVA LÓGICA: Si el modal está abierto, cualquier toque lo cierra
+    if (document.getElementById("modal").style.display === "flex") {
+        cerrarModal();
+        return;
+    }
+
     mouse.x = (clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -306,13 +294,11 @@ function handleInput(clientX, clientY) {
 
 window.addEventListener("click", (e) => handleInput(e.clientX, e.clientY));
 window.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // Evita scroll mientras se toca
+    // Eliminamos e.preventDefault() para que el navegador no bloquee la carga del video
     if (e.touches.length > 0) {
         handleInput(e.touches[0].clientX, e.touches[0].clientY);
     }
-}, { passive: false });
-
-// También permitir cerrar tocando fuera del contenido (ya definido en onclick del modal)
+}, { passive: true });
 
 // ================= ANIMACIÓN =================
 function animate() {
@@ -337,4 +323,3 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
-```
