@@ -1,3 +1,5 @@
+Aquí tienes el código completo con las mejoras de fluidez y cierre automático a los 3 segundos. He añadido precarga de imágenes y video, y un sistema de timeout para que el modal se cierre solo sin bloquear la interacción con otros corazones.
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -72,7 +74,7 @@
 </head>
 <body>
 
-<audio id="musica" src="musica.mp3" loop></audio>
+<audio id="musica" src="musica.mp3" loop preload="auto"></audio>
 
 <video id="video-fondo" autoplay muted loop playsinline>
     <source src="atardecer.mp4" type="video/mp4">
@@ -81,7 +83,8 @@
 <div id="modal" onclick="cerrarModal()">
     <div id="modal-content" onclick="event.stopPropagation()">
         <div id="media-container">
-            <video id="videoFlor" controls playsinline style="display:none; width: 100%; border-radius: 15px;">
+            <!-- El video se precarga con preload="auto" -->
+            <video id="videoFlor" controls playsinline style="display:none; width: 100%; border-radius: 15px;" preload="auto">
                 <source src="videoFlor.mp4" type="video/mp4">
             </video>
         </div>
@@ -95,6 +98,14 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 
 <script>
+// ================= PRECARGA DE RECURSOS =================
+// Precargar las 16 imágenes (imagen1.jpeg ... imagen16.jpeg)
+for (let i = 1; i <= 16; i++) {
+    const img = new Image();
+    img.src = `imagen${i}.jpeg`;
+}
+// El video ya tiene preload="auto" en la etiqueta
+
 // ================= CONFIGURACIÓN ESCENA =================
 const scene = new THREE.Scene();
 const videoF = document.getElementById('video-fondo');
@@ -209,9 +220,12 @@ uniformPoints.forEach((pos, i) => {
     corazones.push(corazon);
 });
 
-// ================= INTERACCIÓN =================
+// ================= INTERACCIÓN Y MODAL CON CIERRE AUTOMÁTICO =================
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+// Variable para controlar el timeout de cierre automático
+let autoCloseTimeout = null;
 
 function openModal(data) {
     const modal = document.getElementById("modal");
@@ -219,23 +233,61 @@ function openModal(data) {
     const container = document.getElementById("media-container");
     const txt = document.getElementById("mensaje-bonito");
 
-    const oldImg = document.getElementById("img-dinamica");
-    if(oldImg) oldImg.remove();
+    // Limpiar cualquier timeout anterior para evitar conflictos
+    if (autoCloseTimeout) {
+        clearTimeout(autoCloseTimeout);
+        autoCloseTimeout = null;
+    }
 
+    // Eliminar imagen previa si existe
+    const oldImg = document.getElementById("img-dinamica");
+    if (oldImg) oldImg.remove();
+
+    // Mostrar el mensaje correspondiente
     txt.innerText = palabrasBonitas[data.id];
 
     if (data.esVideo) {
+        // Mostrar video y ocultar imagen
         video.style.display = "block";
-        video.play();
+        video.currentTime = 0; // Reiniciar por si estaba a medias
+        video.play().catch(() => {}); // El catch por si hay interacción necesaria
     } else {
+        // Mostrar imagen
         video.style.display = "none";
         const img = document.createElement("img");
         img.id = "img-dinamica";
-        img.src = `imagen${data.id + 1}.jpeg`;
+        img.src = `imagen${data.id + 1}.jpeg`; // +1 porque las imágenes van de 1 a 16
+        img.alt = "Imagen bonita";
         container.appendChild(img);
     }
+
     modal.style.display = "flex";
-    document.getElementById("musica").play().catch(()=>{});
+    
+    // Intentar reproducir la música de fondo (solo si no está ya sonando)
+    const musica = document.getElementById("musica");
+    musica.play().catch(() => {});
+
+    // Programar cierre automático a los 3 segundos
+    autoCloseTimeout = setTimeout(() => {
+        cerrarModal();
+    }, 3000);
+}
+
+function cerrarModal() {
+    const modal = document.getElementById("modal");
+    const video = document.getElementById("videoFlor");
+    
+    // Ocultar modal
+    modal.style.display = "none";
+    
+    // Pausar video si está visible
+    video.pause();
+    
+    // Cancelar el timeout pendiente (si lo hay)
+    if (autoCloseTimeout) {
+        clearTimeout(autoCloseTimeout);
+        autoCloseTimeout = null;
+    }
 }
 
 function handleInput(clientX, clientY) {
@@ -246,17 +298,21 @@ function handleInput(clientX, clientY) {
     if (intersects.length > 0) {
         let selected = intersects[0].object;
         while (selected.parent && selected.userData.id === undefined) selected = selected.parent;
-        if (selected.userData.id !== undefined) openModal(selected.userData);
+        if (selected.userData.id !== undefined) {
+            openModal(selected.userData);
+        }
     }
 }
 
 window.addEventListener("click", (e) => handleInput(e.clientX, e.clientY));
-window.addEventListener("touchstart", (e) => handleInput(e.touches[0].clientX, e.touches[0].clientY));
+window.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Evita scroll mientras se toca
+    if (e.touches.length > 0) {
+        handleInput(e.touches[0].clientX, e.touches[0].clientY);
+    }
+}, { passive: false });
 
-function cerrarModal() {
-    document.getElementById("modal").style.display = "none";
-    document.getElementById("videoFlor").pause();
-}
+// También permitir cerrar tocando fuera del contenido (ya definido en onclick del modal)
 
 // ================= ANIMACIÓN =================
 function animate() {
@@ -281,3 +337,4 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
+```
